@@ -45,7 +45,6 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     B_x, B_y = 6, 7 
     p_n, p_i = 8, 9
     # Constants
-    K2 = Kx**2 + Kz**2
     csi_csn = mn / mi
     eps = chi * (mi / mn)
     invsqrt_eta = r0 / h0
@@ -64,33 +63,36 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     A = np.zeros([MATRIX_ORDER, MATRIX_ORDER], dtype='complex128')
     B = np.eye(MATRIX_ORDER, dtype='complex128')
 
+    x1 = 0
+    x2 = 0
+
     # Row 0: v_nx
     A[vnx,vnx] = -Am
     A[vnx,vny] = 2
     A[vnx,vix] = Am
-    A[vnx,p_n] = (-1j * Kx * invsqrt_eta) * comp_n
-    A[vnx,p_i] = (Am * fx) * comp_i
+    A[vnx,p_n] = (-1j * Kx * invsqrt_eta)
+    A[vnx,p_i] = (Am * fx)
 
     # Row 1: v_ny
     A[vny,vnx] = -1/2
     A[vny,vny] = -Am
     A[vny,viy] = Am
-    A[vny,p_i] = (Am * fy) * comp_i
+    A[vny,p_i] = (Am * fy)
 
     # Row 2: v_nz
     A[vnz,vnz] = -Am
     A[vnz,viz] = Am
-    A[vnz,p_n] = (-1j * Kz * invsqrt_eta) * comp_n
-    A[vnz,p_i] = (Am * fz) * comp_i
+    A[vnz,p_n] = (-1j * Kz * invsqrt_eta)
+    A[vnz,p_i] = (Am * fz)
 
     # Row 3 * eps: v_ix
     A[vix,vnx] = Am
     A[vix,vix] = -(iKf * eps + Am)
     A[vix,viy] = 2 * eps
-    A[vix,B_x] = 1j * Kz * (1 + Kx**2 / Kz**2) * invsqrt_eta * (2 * f / betaz) * B0z
-    A[vix,B_y] = -1j * Kx * invsqrt_eta * (2 * f / betay) * B0y
-    A[vix,p_n] = (-Am * fx) * comp_n
-    A[vix,p_i] = (-1j * Kx * invsqrt_eta * (csi_csn) * eps) * comp_i
+    A[vix,B_x] = 1j * Kz * (1 + Kx**2 / Kz**2) * invsqrt_eta * (2 * f / betaz) * B0z * x2
+    A[vix,B_y] = -1j * Kx * invsqrt_eta * (2 * f / betay) * B0y * x2
+    A[vix,p_n] = (-Am * fx)
+    A[vix,p_i] = (-1j * Kx * invsqrt_eta * (csi_csn) * eps) * x1
     
     B[vix,vix] = eps  # fix
 
@@ -98,17 +100,17 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     A[viy,vny] = Am
     A[viy,vix] = -eps/2
     A[viy,viy] = -(iKf * eps + Am)
-    A[viy,B_y] = 1j * Kz * invsqrt_eta * (2 * f / betaz) * B0z
-    A[viy,p_n] = (-Am * fy) * comp_n
+    A[viy,B_y] = 1j * Kz * invsqrt_eta * (2 * f / betaz) * B0z * x2
+    A[viy,p_n] = (-Am * fy)
     
     B[viy,viy] = eps  # fix
 
     # Row 5 * eps: v_iz
     A[viz,vnz] = Am
     A[viz,viz] = -(iKf * eps + Am)
-    A[viz,B_y] = -1j * Kz * invsqrt_eta * (2 * f / betay) * B0y
-    A[viz,p_n] = (-Am * fz) * comp_n
-    A[viz,p_i] = (-1j * Kz * invsqrt_eta * (csi_csn) * eps) * comp_i
+    A[viz,B_y] = -1j * Kz * invsqrt_eta * (2 * f / betay) * B0y * x2
+    A[viz,p_n] = (-Am * fz)
+    A[viz,p_i] = (-1j * Kz * invsqrt_eta * (csi_csn) * eps) * x1
     
     B[viz,viz] = eps  # fix
 
@@ -124,13 +126,13 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     A[B_y,B_y] = -iKf
 
     # Row 9: rho_n
-    A[p_n,vnx] = (-1j * Kx * invsqrt_eta) * comp_n
-    A[p_n,vnz] = (-1j * Kz * invsqrt_eta) * comp_n
+    A[p_n,vnx] = (-1j * Kx * invsqrt_eta)
+    A[p_n,vnz] = (-1j * Kz * invsqrt_eta)
 
     # Row 10: rho_i
-    A[p_i,vix] = (-1j * Kx * invsqrt_eta) * comp_i
-    A[p_i,viz] = (-1j * Kz * invsqrt_eta) * comp_i
-    A[p_i,p_i] = (-iKf) * comp_i
+    A[p_i,vix] = (-1j * Kx * invsqrt_eta)
+    A[p_i,viz] = (-1j * Kz * invsqrt_eta)
+    A[p_i,p_i] = (-iKf)
 
     v = 0
     if vec == True:
