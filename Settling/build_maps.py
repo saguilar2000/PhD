@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import os
-import random
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import matplotlib.lines as mlines
 
 def build_maps(directory):
 
@@ -14,6 +15,10 @@ def build_maps(directory):
     chi = data["chi"]
     betay = data["betay"]
     betaz = data["betaz"]
+    z = data["z"]
+    h0 = 0.05
+    r0 = 1
+    invsqrteta = r0 / h0
     mn = 2.34
     mi = 30
     eps = chi * (mi / mn)
@@ -45,11 +50,40 @@ def build_maps(directory):
     axes.set_yscale('log')
     axes.set_xlabel(r'$K_x\eta r_0$')
     axes.set_ylabel(r'$K_z\eta r_0$')
-    cbar = fig.colorbar(im1, ax=axes, extend='both')
+    ax_ins = inset_axes(axes, width="35%", height="3%", loc='upper left', 
+                    bbox_to_anchor=(0.05, -0.20, 1, 1), 
+                    bbox_transform=axes.transAxes, borderpad=0)
+    cbar = fig.colorbar(im1, cax=ax_ins, orientation='horizontal', extend='both')
+    cbar.set_label(r'$\log_{10}(\sigma/\Omega_0)$', labelpad=-40, y=1.5) # Etiqueta arriba
+    ax_ins.xaxis.set_ticks_position('bottom') # Ticks abajo
+    ax_ins.tick_params(labelsize=8)
 
-    cax = cbar.ax
-    cax.set_ylabel(r'$\log_{10}(\mathrm{Im}(\omega)/\Omega)$', rotation=270, labelpad=15)
-    plt.show()
+    # Resonance lines
+    KX, KZ = np.meshgrid(Kkx, Kkz)
+    res_cond = KX * invsqrteta * drift[0] + KZ * invsqrteta * drift[2] - np.abs((KZ)/(np.sqrt(KX**2 + KZ**2)))
+    cs = axes.contour(KX, KZ, res_cond, levels=[0], colors='k', linestyles='dashed', linewidths=1, label="Resonant Modes")
+
+    line_proxy = mlines.Line2D([], [], color='k', linestyle='--', 
+                            linewidth=1.5, label='Resonant Modes')
+
+    axes.legend(handles=[line_proxy], loc='upper left', 
+                bbox_to_anchor=(0.05, 0.95), frameon=False)
+    
+    output_path = "./figures/settling/"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path, exist_ok=True)
+        print(f"Created directory: {output_path}")
+
+
+    z = z / h0
+    if z==0.5:
+        z_label = "0p5"
+    else:
+        z_label = f"{int(z)}"
+
+    plt.savefig(os.path.join(output_path, f"Settling_{z_label}H.png"), dpi=300)
+    plt.savefig(os.path.join(output_path, f"Settling_{z_label}H.pdf"), bbox_inches='tight')
+    print("Map saved to:", os.path.join(output_path, f"Settling_{z_label}H.png"))
 
 def main():
     if len(sys.argv) < 2:

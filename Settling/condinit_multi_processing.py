@@ -176,9 +176,10 @@ def main():
             continue
 
         # Fixed drift parameters for the node
-        fx = -0.001 # ALMOST THERE! CHECK THE DRIFT AS DEFINED IN KRAPPS'S PAPER
+        # Need to figure out how to set these based on the input parameters
+        fx = -0.001
         fy = 0.0
-        fz = 0.02
+        fz = 0.0157
 
         args = (
             iz, Kkx, kz_node,
@@ -231,6 +232,7 @@ def main():
                 chi=chi,
                 betay=betay,
                 betaz=betaz,
+                z=z,
                 )
     
     np.savez(directory + osc_fname,
@@ -240,6 +242,7 @@ def main():
                 chi=chi,
                 betay=betay,
                 betaz=betaz,
+                z=z,
                 )
     
     np.savez(directory + grwv_fname,
@@ -249,6 +252,7 @@ def main():
                 chi=chi,
                 betay=betay,
                 betaz=betaz,
+                z=z,
                 )
     
     np.savez(directory + oscv_fname,
@@ -258,6 +262,7 @@ def main():
                 chi=chi,
                 betay=betay,
                 betaz=betaz,
+                z=z,
                 )
 
     if f"KX_{node}.npz" not in os.listdir(directory):

@@ -8,6 +8,6 @@ Changes:
 	- **Drift**: if there are no magnetic fields, my framework wont calculate any drift, hence drift values must be included by-hand.
 
 Build:
-	- solver.py: 10 x 10 matrix,2 fluid equations for compressible fluids, considering the solenoid condition.
+	- solver.py: 10 x 10 matrix,2 fluid equations for compressible fluids, considering the solenoid condition, x1 and x2 variables to turn off ions compressibility and the Lorentz force (to replicate Krapp's figure I am using x1=x2=0, i. e., incompressible ions and no Lorentz forces).
 	- condinit_parallel_process.py: Parameters and start-up of the parallelized solver.
-	- condinit_multi_processing.py: Calls the solver, computes and saves the eigenvalues for the actual set-up.
+	- condinit_multi_processing.py: Calls the solver, computes and saves the eigenvalues for the actual set-up. Drift parameters set to fx = -0.001, fy = 0.0, fz = 0.0157, I still need to figure out how to obtain those values from input parameters.
