@@ -1,0 +1,14 @@
+# Growth rates folders
+**/condinit_drift_z0
+**/condinit_drift_z0p5
+**/condinit_drift_z1
+**/condinit_nodrift_z0
+**/condinit_nodrift_z0p5
+**/condinit_nodrift_z1
+
+# Bakcups
+**/backups
+
+# Figures
+**/figures
+
