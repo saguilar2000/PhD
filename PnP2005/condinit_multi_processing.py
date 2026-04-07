@@ -154,139 +154,130 @@ def main():
     # --------------------------------------------------------
     # Parameter loops
     # --------------------------------------------------------
-    chi_list     = [1.0e-08, 5.0e-09, 1.0e-09, 5.0e-10, 1.0e-10, 5.0e-11, 1.0e-11]
-    # chi_list     = [1.0]
-    # ratio_list     = [10, 1, 0.1, 0.03, 0.02, 0.01, 6e-4, 0]
-    # betaz_list   = [1.0e+01, 1.0e+02, 1.0e+03, 1.0e+04, 1.0e+05, 1.0e+06]
-    betaz_list   = [800.0]
+    # Fixed parameters
+    chi = 1.0
     vAp = 0.1072
     vAz = 0.05
+    vA2 = vAp**2 + vAz**2 # gas = ions + neutrals
+    Am_ = Am(r0, W, z, chi)
 
-    for chi in chi_list:
-        eps = chi * (mi / mn)
-        Am_ = Am(r0, W, z, eps)
-        # for ratio in ratio_list:
-        #         f = 1 + chi
-        #         cs2 = ratio * (vAp**2 + vAz**2)
-        #         betay = 2 * f * cs2 / vAp**2
-        #         betaz = 2 * f * cs2 / vAz**2
-        #         if cs2 == 0.0:
-        #             betay = 1e-10
-        #             betaz = 1e-10
-        for betaz in betaz_list:
-            # betay_list = [0.1*betaz, 1*betaz, 10*betaz, 100*betaz]
-            betay_list = [50.0, 100.0, 500.0, 1000.0, 5000.0]
-            for betay in betay_list:
+    # Variable parameters
+    ratio_list = [10, 1, 0.1, 0.03, 0.02, 0.01, 6e-4] # (cs2/vA2)
 
-                processes = []
+    processes = []
+    for ratio in ratio_list:
+        cs2 = ratio * vA2 # gas = ions + neutrals
+        betay =  2 * cs2 / vAp**2
+        betaz =  2 * cs2 / vAz**2
 
-                for iz in range(actual_tasks):
+        for iz in range(actual_tasks):    
+            start_idx = iz * division_kz
+            end_idx = (iz + 1) * division_kz
 
-                    if drift == "nodrift":
-                        fx, fy, fz = 0.0, 0.0, 0.0
-                    else:
-                        fx, fy, fz = gs.compute_drift(
-                            h0, r0, z, Am_, n, betay, betaz, chi
-                        )
-                    
-                    start_idx = iz * division_kz
-                    end_idx = (iz + 1) * division_kz
+            if iz == actual_tasks - 1:
+                end_idx = NZ
+            
+            kz_node = Kkz[start_idx : end_idx]
+            
+            if len(kz_node) == 0:
+                continue
 
-                    if iz == actual_tasks - 1:
-                        end_idx = NZ
-                    
-                    kz_node = Kkz[start_idx : end_idx]
-                    
-                    if len(kz_node) == 0:
-                        continue
+            # Fixed drift parameters for the node (no drift)
+            fx, fy, fz = 0.0, 0.0, 0.0
 
-                    args = (
-                        iz, Kkx, kz_node,
-                        Am_, chi,
-                        fx, fy, fz,
-                        betay, betaz,
-                        mn, mi, q, r0, h0,
-                        vec, vec_size,
-                        GRW, OSC, GRWV, OSCV
+            args = (
+                iz, Kkx, kz_node,
+                Am_, chi,
+                fx, fy, fz,
+                betay, betaz,
+                mn, mi, q, r0, h0,
+                vec, vec_size,
+                GRW, OSC, GRWV, OSCV
+            )
+
+            proc = multiprocessing.Process(
+                target=parallel_process,
+                args=args
+            )
+
+            processes.append(proc)
+            proc.start()
+
+        for p in processes:
+            p.join()
+
+        # ------------------------------------------------
+        # Reshape output
+        # ------------------------------------------------
+        GRW_save  = np.array(GRW[:]).reshape(NZ, NX)
+        OSC_save  = np.array(OSC[:]).reshape(NZ, NX)
+        GRWV_save = np.array(GRWV[:]).reshape(NZ, NX, vec_size)
+        OSCV_save = np.array(OSCV[:]).reshape(NZ, NX, vec_size)
+
+        # ------------------------------------------------
+        # Save
+        # ------------------------------------------------
+        directory = par["Output"] + "/"
+        os.makedirs(directory, exist_ok=True)
+
+        grw_fname = f"GRW_{node}_ratio_{ratio:.2e}"
+        osc_fname = f"OSC_{node}_ratio_{ratio:.2e}"
+        grwv_fname = f"GRWV_{node}_ratio_{ratio:.2e}"
+        oscv_fname = f"OSCV_{node}_ratio_{ratio:.2e}"
+
+        np.savez(directory + grw_fname,
+                    data=GRW_save,
+                    drift=np.array([fx, fy, fz]),
+                    Am=Am_,
+                    chi=chi,
+                    betay=betay,
+                    betaz=betaz,
+                    z=z,
+                    ratio=ratio,
+                    cs2=cs2,
+                    )
+        
+        np.savez(directory + osc_fname,
+                    data=OSC_save,
+                    drift=np.array([fx, fy, fz]),
+                    Am=Am_,
+                    chi=chi,
+                    betay=betay,
+                    betaz=betaz,
+                    z=z,
+                    ratio=ratio,
+                    cs2=cs2,
+                    )
+        
+        np.savez(directory + grwv_fname,
+                    data=GRWV_save,
+                    drift=np.array([fx, fy, fz]),
+                    Am=Am_,
+                    chi=chi,
+                    betay=betay,
+                    betaz=betaz,
+                    z=z,
+                    ratio=ratio,
+                    cs2=cs2,
+                    )
+        
+        np.savez(directory + oscv_fname,
+                    data=OSCV_save,
+                    drift=np.array([fx, fy, fz]),
+                    Am=Am_,
+                    chi=chi,
+                    betay=betay,
+                    betaz=betaz,
+                    z=z,
+                    ratio=ratio,
+                    cs2=cs2,
                     )
 
-                    proc = multiprocessing.Process(
-                        target=parallel_process,
-                        args=args
-                    )
+        np.savez(directory + f"KX_{node}", Kkx)
+        np.savez(directory + f"KZ_{node}", Kkz)
 
-                    processes.append(proc)
-                    proc.start()
-
-                for p in processes:
-                    p.join()
-
-                # ------------------------------------------------
-                # Reshape output
-                # ------------------------------------------------
-                GRW_save  = np.array(GRW[:]).reshape(NZ, NX)
-                OSC_save  = np.array(OSC[:]).reshape(NZ, NX)
-                GRWV_save = np.array(GRWV[:]).reshape(NZ, NX, vec_size)
-                OSCV_save = np.array(OSCV[:]).reshape(NZ, NX, vec_size)
-
-                # ------------------------------------------------
-                # Save
-                # ------------------------------------------------
-                directory = par["Output"] + "/"
-                os.makedirs(directory, exist_ok=True)
-
-                chi_str   = f"{chi:.0e}"
-                # ratio_str   = f"{ratio:.0e}"
-                betay_str = f"{betay:.0e}"
-                betaz_str = f"{betaz:.0e}"
-
-                grw_fname = f"GRW_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
-                osc_fname = f"OSC_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
-                grwv_fname = f"GRWV_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
-                oscv_fname = f"OSCV_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
-
-                np.savez(directory + grw_fname,
-                            data=GRW_save,
-                            drift=np.array([fx, fy, fz]),
-                            Am=Am_,
-                            chi=chi,
-                            betay=betay,
-                            betaz=betaz,
-                            )
-                
-                np.savez(directory + osc_fname,
-                            data=OSC_save,
-                            drift=np.array([fx, fy, fz]),
-                            Am=Am_,
-                            chi=chi,
-                            betay=betay,
-                            betaz=betaz,
-                            )
-                
-                np.savez(directory + grwv_fname,
-                            data=GRWV_save,
-                            drift=np.array([fx, fy, fz]),
-                            Am=Am_,
-                            chi=chi,
-                            betay=betay,
-                            betaz=betaz,
-                            )
-                
-                np.savez(directory + oscv_fname,
-                            data=OSCV_save,
-                            drift=np.array([fx, fy, fz]),
-                            Am=Am_,
-                            chi=chi,
-                            betay=betay,
-                            betaz=betaz,
-                            )
-
-                if f"KX_{node}.npz" not in os.listdir(directory):
-                    np.savez(directory + f"KX_{node}", Kkx)
-                    np.savez(directory + f"KZ_{node}", Kkz)
-
-    print("\nDone!")
-    print("Maps saved in:", directory)
+        print("\nDone!")
+        print("Maps saved in:", directory)
 
 if __name__ == "__main__":
     main()

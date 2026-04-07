@@ -1,4 +1,5 @@
 #!/bin/bash
+# Cleaning script: removes Slurm output and error files, and then backs up the specified directories into a new backup folder with an incremented name.
 
 echo "=============================================="
 echo "Cleaning directory..."

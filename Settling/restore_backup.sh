@@ -1,4 +1,6 @@
 #!/bin/bash
+# This script restores the specified backup directory by moving the contained folders back to the main directory. 
+# It also checks for existing folders before restoring and renames backup directories sequentially after restoration.
 
 if [ -z "$1" ]; then
     echo "Usage: $0 <backup_directory>"

@@ -42,12 +42,11 @@ task_per_node = 32
 
 # Setup parameters
 min_res = 500 # Minimum resolution for the solver
-kxmin   = 0.0  # 1e-1
-kxmax   = 0.0  # 1e+4
-kzmin   = 1e-1
-# kzmin   = 1e-10
-# kzmax   = 1e+4
-kzmax   = 1e+8
+kxmin   = 0.0
+kxmax   = 0.0
+kzmin   = 1e-10
+kzmax   = 1e+4
+
 if kxmin == 0.0 and kxmax == 0.0:
     NX = 1
 else:
