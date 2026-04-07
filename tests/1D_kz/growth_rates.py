@@ -181,7 +181,7 @@ def curves(dir, savefig=False, overwrite=False):
         z = z.split("/")[0]
 
     if savefig:
-        output_path = "./figures/1D_tests/test_small/"
+        output_path = "./figures/"
         if not os.path.exists(output_path):
             os.makedirs(output_path, exist_ok=True)
             print(f"Created directory: {output_path}")

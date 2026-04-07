@@ -45,7 +45,7 @@ def curves(dir, savefig=False, overwrite=False):
         sys.exit(1)
         
     kz_values = np.load(kz_path)["arr_0"]
-    map_fnames = [map_fname for map_fname in os.listdir(dir) if map_fname.startswith("GRW_0") and map_fname.endswith(".npz")]
+    map_fnames = [map_fname for map_fname in os.listdir(dir) if map_fname.startswith("MAP_0") and map_fname.endswith(".npz")]
 
     chi_values = set()
 

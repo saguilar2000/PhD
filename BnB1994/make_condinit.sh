@@ -1,3 +1,0 @@
-#!/bin/bash
-
-python3 condinit_parallel_process.py 1 0 drift 0.0 && python3 condinit_parallel_process.py 1 0 drift 0.5 && python3 condinit_parallel_process.py 1 0 drift 1.0 && python3 condinit_parallel_process.py 1 0 nodrift 0.0 && python3 condinit_parallel_process.py 1 0 nodrift 0.5 && python3 condinit_parallel_process.py 1 0 nodrift 1.0
