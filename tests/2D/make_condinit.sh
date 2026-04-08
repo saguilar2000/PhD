@@ -13,4 +13,4 @@ Z_SCALE=${2:-"0.0"}
 
 module load Python/3.11.4
 
-python3 parallel_solver.py 1 0 "$DRIFT" "$Z_SCALE"(base)
+python3 parallel_solver.py 1 0 "$DRIFT" "$Z_SCALE"
