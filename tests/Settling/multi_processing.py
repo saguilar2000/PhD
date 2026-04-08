@@ -155,10 +155,15 @@ def main():
     # Parameter loops
     # --------------------------------------------------------
     eps = 1e-3
-    chi = eps * (mn / mi)
     Am_ = 1e-1
     betay = 1e8
     betaz = 1e8
+    chi = eps * (mn / mi)
+    r0 = 1.0
+    h0 = 0.05 * r0
+    invsqrteta = r0 / h0
+    sqrteta = h0 / r0
+    inveta = (r0 / h0)**2
 
     processes = []
 
@@ -177,9 +182,16 @@ def main():
 
         # Fixed drift parameters for the node
         # Need to figure out how to set these based on the input parameters
-        fx = -0.001
-        fy = 0.0
+        # fx = -0.001
+        # fy = 0.0
+        # fz = 0.0157
+
+        fx = np.sqrt((1+chi)/(1+eps)) * sqrteta * ((-2*eps*Am_)/((Am_**2)*((1+eps)**2) + eps**2))
+        fy = np.sqrt((1+chi)/(1+eps)) * sqrteta * ((eps**2)/((Am_**2)*((1+eps)**2) + eps**2))
+        # fz = (1+eps) * np.sqrt((1+chi)/(1+eps)) * (eps / Am_) # Check!!!
         fz = 0.0157
+        print(fx,fy,fz)
+        # exit()
 
         args = (
             iz, Kkx, kz_node,
