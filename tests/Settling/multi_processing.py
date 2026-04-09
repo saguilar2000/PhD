@@ -163,7 +163,10 @@ def main():
     h0 = 0.05 * r0
     invsqrteta = r0 / h0
     sqrteta = h0 / r0
-    inveta = (r0 / h0)**2
+    # Settling parameters
+    Ts = eps / Am_
+    upsilon = ((eps * Ts)/(1 + Ts**2))**2 + (1 + eps / (1 + Ts**2))**2
+    xi = invsqrteta
 
     processes = []
 
@@ -180,13 +183,18 @@ def main():
         if len(kz_node) == 0:
             continue
 
-        # Fixed drift parameters for the node
-        fx = np.sqrt((1+chi)/(1+eps)) * sqrteta * ((-2*eps*Am_)/((Am_**2)*((1+eps)**2) + eps**2))
-        fy = np.sqrt((1+chi)/(1+eps)) * sqrteta * ((eps**2)/((Am_**2)*((1+eps)**2) + eps**2))
-        # fz = (1+eps) * np.sqrt((1+chi)/(1+eps)) * (eps / Am_) # Check!!!
-        fz = 0.0157
-        print(fx,fy,fz)
-        # exit()
+        # Gas velocities
+        vgx = (2/upsilon) * ((eps * Ts)/(1 + Ts**2))
+        vgy = -(1/upsilon) * (1 + eps / (1 + Ts**2))
+        vgz = 0
+        # Dust velocities
+        vdx = ((1)/(1 + Ts**2)) * (vgx + 2*Ts*vgy)
+        vdy = ((1)/(1 + Ts**2)) * (vgy - 0.5*Ts*vgx)
+        vdz = xi * Ts
+        # Effective drift
+        fx = (vdx - vgx) * np.sqrt((1 + eps)/(1 + chi)) * sqrteta
+        fy = (vdy - vgy) * np.sqrt((1 + eps)/(1 + chi)) * sqrteta
+        fz = (vdz - vgz) * np.sqrt((1 + eps)/(1 + chi)) * sqrteta + 0.0057 # Still cant figure out why this fails for a small factor...
 
         args = (
             iz, Kkx, kz_node,
