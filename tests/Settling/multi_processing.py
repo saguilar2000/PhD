@@ -181,11 +181,6 @@ def main():
             continue
 
         # Fixed drift parameters for the node
-        # Need to figure out how to set these based on the input parameters
-        # fx = -0.001
-        # fy = 0.0
-        # fz = 0.0157
-
         fx = np.sqrt((1+chi)/(1+eps)) * sqrteta * ((-2*eps*Am_)/((Am_**2)*((1+eps)**2) + eps**2))
         fy = np.sqrt((1+chi)/(1+eps)) * sqrteta * ((eps**2)/((Am_**2)*((1+eps)**2) + eps**2))
         # fz = (1+eps) * np.sqrt((1+chi)/(1+eps)) * (eps / Am_) # Check!!!
