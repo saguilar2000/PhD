@@ -10,7 +10,7 @@
 **/backups
 
 # Figures
-**/figures
+**/figures*
 
 # Error and out files
 **/condinit_*.e
