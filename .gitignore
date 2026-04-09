@@ -12,3 +12,7 @@
 # Figures
 **/figures
 
+# Error and out files
+**/condinit_*.e
+**/condinit_*.out
+
