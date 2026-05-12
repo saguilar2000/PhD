@@ -16,3 +16,5 @@
 **/condinit_*.e
 **/condinit_*.out
 
+# Fargo3D outputs
+**/outputs
