@@ -1,0 +1,9 @@
+SYMMETRIC:
+	Centered:     |a|a|
+	Staggered:    |a|a|a|
+
+ANTISYMMETRIC:
+	Staggered:    |-a|0|a|
+
+SHEARBOUNDARY:
+	Centered: |-1.5*'OMEGAFRAME'*ymed(jgh)|vt|
