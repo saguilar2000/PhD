@@ -8,6 +8,9 @@ import random
 
 MATRIX_ORDER = 10
 
+# ============================================================
+# Drift computation
+# ============================================================
 def compute_drift(h0, r0, z, Am, n, betay, betaz, chi):
     sqrt_eta = h0 / r0
     f = 1 + chi
@@ -17,6 +20,27 @@ def compute_drift(h0, r0, z, Am, n, betay, betaz, chi):
     
     return fx, fy, fz
 
+# ============================================================
+# Elsasser number ambipolar diffusion term
+# ============================================================
+def Am(r, W, z, eps):
+    r0 = 1.0 # AU
+    h0 = 0.05 * r
+    rho_n0 = 1.0e-10
+    gamma = 3.5e13  # cm^3 g^-1 s^-1
+    G = 6.67430e-8  # cm^3 g^-1 s^-2
+    M_sun = 1.989e33  # g
+    r_cm = r * 1.496e13  # Convert AU to cm
+
+    rho_n = rho_n0 * (r/r0)**(W) * np.exp(-z**2/(2*h0**2))
+    Omega_K = np.sqrt(G*M_sun/r_cm**3)
+    alpha = gamma * rho_n / Omega_K
+
+    return alpha * eps
+
+# ============================================================
+# Eigenvalue computation
+# ============================================================
 def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0, h0, vec, comp_n = 1, comp_i = 1):
     """_summary_
 

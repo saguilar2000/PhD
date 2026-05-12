@@ -13,7 +13,6 @@ import json
 import gc
 import math
 from matplotlib.lines import Line2D
-from scipy.stats import linregress
 
 def get_file_path(directory, prefix, extension=".npz"):
     """
@@ -46,7 +45,7 @@ def curves(dir, savefig=False, overwrite=False):
         sys.exit(1)
         
     kz_values = np.load(kz_path)["arr_0"]
-    map_fnames = [map_fname for map_fname in os.listdir(dir) if map_fname.startswith("MAP_0") and map_fname.endswith(".npz")]
+    map_fnames = [map_fname for map_fname in os.listdir(dir) if map_fname.startswith("GRW_0") and map_fname.endswith(".npz")]
 
     chi_values = set()
 
@@ -83,7 +82,6 @@ def curves(dir, savefig=False, overwrite=False):
 
     for i, (ax, config) in enumerate(zip(axes, configs)):
         betay, betaz = config
-        limit = 0
         for chi in chi_values:
             # Get filenames from list matching the chi value
             string = f"chi_{chi}_betay_{betay}_betaz_{betaz}"
@@ -92,56 +90,26 @@ def curves(dir, savefig=False, overwrite=False):
             if not matched_fnames:
                 continue
             map_fname = matched_fnames[0]
-            
-            data_drift_z0 = np.load(os.path.join(dir, map_fname), allow_pickle=True)
-            nodrift_dir = dir.replace("drift", "nodrift")
-            data_nodrift_z0 = np.load(os.path.join(nodrift_dir, map_fname), allow_pickle=True)
-            # auxiliary files
-            aux_dir = "./aux/" + dir
-            data_aux = np.load(os.path.join(aux_dir, map_fname), allow_pickle=True)
+            data_drift = np.load(os.path.join(dir, map_fname), allow_pickle=True)
+            data_limit = np.load(os.path.join("limit_"+dir, map_fname), allow_pickle=True)
                 
-            eigval_drift_z0 = data_drift_z0["data"][:,0]
-            eigval_nodrift_z0 = data_nodrift_z0["data"][:,0]
-            eigval_aux = data_aux["data"][:,0]
-            limit += eigval_aux
+            eigval_drift = data_drift["data"][:,0]
+            eigval_limit = data_limit["data"][:,0]
 
-            Am = data_drift_z0["Am"]
-            chi_val = data_drift_z0["chi"]
-            betay_val = data_drift_z0["betay"]
-            betaz_val = data_drift_z0["betaz"]
-            drift = data_drift_z0["drift"]
-
-            mn = 2.34
-            mi = 30
-
-            eps = chi_val * (mi / mn)
-
-            factor = 1 + chi_val
-            vAz = np.sqrt((2 * factor)/(betaz_val * (1 + eps)))
-            wz = drift[2]
-
-            # print(f"wz: {wz:.2e}, vAz: {vAz:.2e}")
-
-            r0 = 1.0
-            h0 = 0.05 * r0
-            invsqrteta = r0 / h0
-            omega_drift = np.abs(kz_values * invsqrteta * drift[2])
-            omega_ind   = np.abs(drift[2])
-            # t_drift = 1/omega_drift if omega_drift != 0 else float('inf')
-            # t_growth = 1/omega_max_nd if omega_max_nd != 0 else float('inf')
+            Am = data_drift["Am"]
+            chi_val = data_drift["chi"]
+            betay_val = data_drift["betay"]
+            betaz_val = data_drift["betaz"]
+            drift = data_drift["drift"]
             
             # Plotting
-            # ax.plot(kz_values, eigval_nodrift_z0, label = f"$A_m$={Am:.2e}")
-            if wz > vAz:
-                ls = "-"
-            else:
-                ls = "--"
-            ax.plot(kz_values, eigval_drift_z0, ls = ls, label = f"$A_m$={Am:.2e}")
-            omega = 7 * kz_values * invsqrteta * drift[2]
+            ax.plot(kz_values, eigval_drift, label = f"$A_m$={Am:.2e}")
             color = ax.get_lines()[-1].get_color()
-            ax.plot(kz_values, omega, ls = '-.', c=color)
-            ax.plot(kz_values, eigval_aux, "k")#, label = f"$A_m$={Am:.2e}")
+            ax.scatter(kz_values, eigval_limit, c = color)
         
+        if i == 0:
+            leg_local = ax.legend(title="AD Elsasser number")
+            ax.add_artist(leg_local)
 
         col = i % ncols
         row = i // ncols
@@ -152,25 +120,10 @@ def curves(dir, savefig=False, overwrite=False):
         # Only add xlabel if we are in the last row
         if row == nrows - 1:
             ax.set_xlabel(r"$k_z\eta r_0$")
-
-        limit /= len(chi_values)
-        slope, intercept, r_value, p_value, std_err = linregress(np.log10(kz_values), np.log10(limit))
-        
-        x = kz_values
-        y = limit
-        print((y[-1] - y[0])/(x[-1] - x[0]))
-
-        ax.plot(kz_values, limit, "k", label=r"$k_z \rightarrow \infty$")
-        # ax.text(0.1, 0.1, f"Slope: {slope}", transform=ax.transAxes, fontsize=10, verticalalignment='top')
-        
-        if i == 0:
-            leg_local = ax.legend(title="AD Elsasser number")
-            ax.add_artist(leg_local)
         
         ax.set_xscale("log")
         ax.set_yscale("log")
-        # ax.set_ylim(top = 1.0, bottom = -0.05)
-        # ax.set_ylim(bottom = -0.05)
+        ax.set_ylim(bottom = -0.05)
         # print(ax.get_ylim())
         ax.set_title(fr"$\beta_y$={betay_val:.0e}, $\beta_z$={betaz_val:.0e}")
         
@@ -201,8 +154,8 @@ def curves(dir, savefig=False, overwrite=False):
         # Line2D([0], [0], color=color_zH, lw=2, label='z = H'),
 
         # Case
-        Line2D([0], [0], color='gray', lw=2, ls='-', label=r'$w_z > v_{Az}$'),
-        Line2D([0], [0], color='gray', lw=2, ls='--', label=r'$w_z < v_{Az}$'),
+        Line2D([0], [0], color='gray', lw=2, ls='-', label='Classical MRI'),
+        Line2D([0], [0], color='gray', lw=2, ls='--', label='Ion-Neutral drift')
         ]
 
     # Global legend
@@ -218,7 +171,7 @@ def curves(dir, savefig=False, overwrite=False):
         z = z.split("/")[0]
 
     if savefig:
-        output_path = "./figures/1D_tests/test_small/"
+        output_path = "./figures/"
         if not os.path.exists(output_path):
             os.makedirs(output_path, exist_ok=True)
             print(f"Created directory: {output_path}")
@@ -251,6 +204,8 @@ def curves(dir, savefig=False, overwrite=False):
         plt.savefig(os.path.join(new_path, f"GrowthRates_{z}.png"), dpi=300)
         plt.savefig(os.path.join(new_path, f"GrowthRates_{z}.pdf"), bbox_inches='tight')
 
+        print("Map saved to:", os.path.join(new_path, f"GrowthRates_{z}_limit.png"))
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python growth_rates.py <directory>")
@@ -258,7 +213,8 @@ def main():
 
     dir = sys.argv[1]
 
-    curves(dir, savefig=True, overwrite=True)
+    curves(dir, savefig=True, overwrite=False)
+    # max_growth_rate(dir)
     gc.collect()
     
 

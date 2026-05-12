@@ -103,6 +103,7 @@ def curves(dir, savefig=False, overwrite=False):
             betay_val = data_drift_z0["betay"]
             betaz_val = data_drift_z0["betaz"]
             drift = data_drift_z0["drift"]
+            print(drift)
             
             r0 = 1.0
             h0 = 0.05 * r0
@@ -224,90 +225,84 @@ def max_growth_rate(dir):
         sys.exit(1)
         
     kz_values = np.load(kz_path)["arr_0"]
-    map_fnames = [map_fname for map_fname in os.listdir(dir) if map_fname.startswith("MAP_0") and map_fname.endswith(".npz")]
+    map_fnames = [map_fname for map_fname in os.listdir(dir) if map_fname.startswith("GRW_0") and map_fname.endswith(".npz")]
     map_fnames = [map_fname for map_fname in map_fnames if "chi_5e" not in map_fname] # Exclude chi=5eX values for clarity
 
     max_growth_MRI_parameters = {"omega": 0.0, "k_z": None, "chi": None, "Am":None, "betay": None, "betaz": None}
     max_growth_drift_parameters = {"omega": 0.0, "k_z": None, "chi": None, "Am":None, "betay": None, "betaz": None}
     max_growth_MRI_eigvector = {"omega": None,"rho_n": None, "rho_i": None, "v_nx":None, "v_ny": None, "v_nz": None, "v_ix": None, "v_iy": None, 
-                                "v_iz": None,"b_x": None, "b_y": None, "b_z": None}
+                                "v_iz": None,"b_x": None, "b_y": None}
     max_growth_drift_eigvector = {"omega": None,"rho_n": None, "rho_i": None, "v_nx":None, "v_ny": None, "v_nz": None, "v_ix": None, "v_iy": None, 
-                                "v_iz": None,"b_x": None, "b_y": None, "b_z": None}
+                                "v_iz": None,"b_x": None, "b_y": None}
 
     for map_fname in map_fnames:
         nd_dir = dir.replace("drift", "nodrift")
-        mapv_fname = map_fname.replace("MAP_", "MAPV_")
+        vec_fname = map_fname.replace("GRW_", "VEC_")
 
-        data_nodrift_z0 = np.load(os.path.join(nd_dir, map_fname), allow_pickle=True)
-        mapv_nodrift_z0 = np.load(os.path.join(nd_dir, mapv_fname), allow_pickle=True)
-        osc_nodrift_data_z0 = np.load(os.path.join(nd_dir, map_fname.replace("MAP_", "OSC_")), allow_pickle=True)
-        oscv_nodrift_data_z0 = np.load(os.path.join(nd_dir, mapv_fname.replace("MAPV_", "OSCV_")), allow_pickle=True)
+        grw_nodrift = np.load(os.path.join(nd_dir, map_fname), allow_pickle=True)
+        osc_nodrift = np.load(os.path.join(nd_dir, map_fname.replace("GRW_", "OSC_")), allow_pickle=True)
+        vec_nodrift = np.load(os.path.join(nd_dir, vec_fname), allow_pickle=True)
 
-        data_drift_z0 = np.load(os.path.join(dir, map_fname), allow_pickle=True)
-        mapv_drift_z0 = np.load(os.path.join(dir, mapv_fname), allow_pickle=True)
-        osc_drift_data_z0 = np.load(os.path.join(dir, map_fname.replace("MAP_", "OSC_")), allow_pickle=True)
-        oscv_drift_data_z0 = np.load(os.path.join(dir, mapv_fname.replace("MAPV_", "OSCV_")), allow_pickle=True)
-            
-        eigval_nodrift_z0 = data_nodrift_z0["data"][:,0]
-        eigval_drift_z0 = data_drift_z0["data"][:,0]
+        grw_drift = np.load(os.path.join(dir, map_fname), allow_pickle=True)
+        osc_drift = np.load(os.path.join(dir, map_fname.replace("GRW_", "OSC_")), allow_pickle=True)
+        vec_drift = np.load(os.path.join(dir, vec_fname), allow_pickle=True)
 
-        eigvect_nodrift_z0 = mapv_nodrift_z0["data"][:,0]
-        eigvect_drift_z0 = mapv_drift_z0["data"][:,0]
+        GRW_DRIFT = grw_drift
+        GRW_NODRIFT = grw_nodrift
+        OSC_DRIFT = osc_drift
+        OSC_NODRIFT = osc_nodrift
+        VEC_DRIFT = vec_drift
+        VEC_NODRIFT = vec_nodrift
 
-        osc_nodrift_z0 = osc_nodrift_data_z0["data"][:,0]
-        osc_drift_z0 = osc_drift_data_z0["data"][:,0]
+        idx_z, idx_x = np.unravel_index(np.argmax(GRW_NODRIFT["data"]), GRW_NODRIFT["data"].shape)
 
-        oscv_nodrift_z0 = oscv_nodrift_data_z0["data"][:,0]
-        oscv_drift_z0 = oscv_drift_data_z0["data"][:,0]
+        if GRW_NODRIFT["data"][idx_z, idx_x] > max_growth_MRI_parameters["omega"]:
+            max_growth_MRI_parameters["omega"] = GRW_NODRIFT["data"][idx_z, idx_x]
+            max_growth_MRI_parameters["k_z"] = kz_values[idx_z]
+            max_growth_MRI_parameters["chi"] = GRW_NODRIFT["chi"]
+            max_growth_MRI_parameters["Am"] = GRW_NODRIFT["Am"]
+            max_growth_MRI_parameters["betay"] = GRW_NODRIFT["betay"]
+            max_growth_MRI_parameters["betaz"] = GRW_NODRIFT["betaz"]
+            max_growth_MRI_eigvector["omega"] = GRW_NODRIFT["data"][idx_z, idx_x] + 1j*OSC_NODRIFT["data"][idx_z, idx_x]
 
-        if max(eigval_nodrift_z0) > max_growth_MRI_parameters["omega"]:
-            max_growth_MRI_parameters["omega"] = max(eigval_nodrift_z0)
-            max_growth_MRI_parameters["k_z"] = kz_values[np.argmax(eigval_nodrift_z0)]
-            max_growth_MRI_parameters["chi"] = data_nodrift_z0["chi"]
-            max_growth_MRI_parameters["Am"] = data_nodrift_z0["Am"]
-            max_growth_MRI_parameters["betay"] = data_nodrift_z0["betay"]
-            max_growth_MRI_parameters["betaz"] = data_nodrift_z0["betaz"]
-            max_growth_MRI_eigvector["omega"] = eigval_nodrift_z0[np.argmax(eigval_nodrift_z0)] + 1j*osc_nodrift_z0[np.argmax(eigval_nodrift_z0)]
-            max_growth_MRI_eigvector["v_nx"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][0] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][0]
-            max_growth_MRI_eigvector["v_ny"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][1] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][1]
-            max_growth_MRI_eigvector["v_nz"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][2] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][2]
-            max_growth_MRI_eigvector["v_ix"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][3] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][3]
-            max_growth_MRI_eigvector["v_iy"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][4] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][4]
-            max_growth_MRI_eigvector["v_iz"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][5] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][5]
-            max_growth_MRI_eigvector["b_x"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][6] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][6]
-            max_growth_MRI_eigvector["b_y"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][7] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][7]
-            max_growth_MRI_eigvector["b_z"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][8] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][8]
-            max_growth_MRI_eigvector["rho_n"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][9] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][9]
-            max_growth_MRI_eigvector["rho_i"] = eigvect_nodrift_z0[np.argmax(eigval_nodrift_z0)][10] + 1j*oscv_nodrift_z0[np.argmax(eigval_nodrift_z0)][10]
-        
-        if max(eigval_drift_z0) > max_growth_drift_parameters["omega"]:
-            max_growth_drift_parameters["omega"] = max(eigval_drift_z0)
-            max_growth_drift_parameters["k_z"] = kz_values[np.argmax(eigval_drift_z0)]
-            max_growth_drift_parameters["chi"] = data_drift_z0["chi"]
-            max_growth_drift_parameters["Am"] = data_drift_z0["Am"]
-            max_growth_drift_parameters["betay"] = data_drift_z0["betay"]
-            max_growth_drift_parameters["betaz"] = data_drift_z0["betaz"]
-            max_growth_drift_eigvector["omega"] = eigval_drift_z0[np.argmax(eigval_drift_z0)] + 1j*osc_drift_z0[np.argmax(eigval_drift_z0)]
-            max_growth_drift_eigvector["v_nx"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][0] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][0]
-            max_growth_drift_eigvector["v_ny"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][1] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][1]
-            max_growth_drift_eigvector["v_nz"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][2] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][2]
-            max_growth_drift_eigvector["v_ix"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][3] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][3]
-            max_growth_drift_eigvector["v_iy"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][4] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][4]
-            max_growth_drift_eigvector["v_iz"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][5] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][5]
-            max_growth_drift_eigvector["b_x"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][6] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][6]
-            max_growth_drift_eigvector["b_y"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][7] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][7]
-            max_growth_drift_eigvector["b_z"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][8] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][8]
-            max_growth_drift_eigvector["rho_n"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][9] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][9]
-            max_growth_drift_eigvector["rho_i"] = eigvect_drift_z0[np.argmax(eigval_drift_z0)][10] + 1j*oscv_drift_z0[np.argmax(eigval_drift_z0)][10]
+            max_growth_MRI_eigvector["v_nx"] = VEC_NODRIFT["data"][idx_z, idx_x, :][0]
+            max_growth_MRI_eigvector["v_ny"] = VEC_NODRIFT["data"][idx_z, idx_x, :][1]
+            max_growth_MRI_eigvector["v_nz"] = VEC_NODRIFT["data"][idx_z, idx_x, :][2]
+            max_growth_MRI_eigvector["v_ix"] = VEC_NODRIFT["data"][idx_z, idx_x, :][3]
+            max_growth_MRI_eigvector["v_iy"] = VEC_NODRIFT["data"][idx_z, idx_x, :][4]
+            max_growth_MRI_eigvector["v_iz"] = VEC_NODRIFT["data"][idx_z, idx_x, :][5]
+            max_growth_MRI_eigvector["b_x"] = VEC_NODRIFT["data"][idx_z, idx_x, :][6]
+            max_growth_MRI_eigvector["b_y"] = VEC_NODRIFT["data"][idx_z, idx_x, :][7]
+            max_growth_MRI_eigvector["rho_n"] = VEC_NODRIFT["data"][idx_z, idx_x, :][8]
+            max_growth_MRI_eigvector["rho_i"] = VEC_NODRIFT["data"][idx_z, idx_x, :][9]
+
+        if GRW_DRIFT["data"][idx_z, idx_x] > max_growth_drift_parameters["omega"]:
+            max_growth_drift_parameters["omega"] = GRW_DRIFT["data"][idx_z, idx_x]
+            max_growth_drift_parameters["k_z"] = kz_values[idx_z]
+            max_growth_drift_parameters["chi"] = GRW_DRIFT["chi"]
+            max_growth_drift_parameters["Am"] = GRW_DRIFT["Am"]
+            max_growth_drift_parameters["betay"] = GRW_DRIFT["betay"]
+            max_growth_drift_parameters["betaz"] = GRW_DRIFT["betaz"]
+            max_growth_drift_eigvector["omega"] = GRW_DRIFT["data"][idx_z, idx_x] + 1j*OSC_DRIFT["data"][idx_z, idx_x]
+            max_growth_drift_eigvector["v_nx"] = VEC_DRIFT["data"][idx_z, idx_x, :][0]
+            max_growth_drift_eigvector["v_ny"] = VEC_DRIFT["data"][idx_z, idx_x, :][1]
+            max_growth_drift_eigvector["v_nz"] = VEC_DRIFT["data"][idx_z, idx_x, :][2]
+            max_growth_drift_eigvector["v_ix"] = VEC_DRIFT["data"][idx_z, idx_x, :][3]
+            max_growth_drift_eigvector["v_iy"] = VEC_DRIFT["data"][idx_z, idx_x, :][4]
+            max_growth_drift_eigvector["v_iz"] = VEC_DRIFT["data"][idx_z, idx_x, :][5]
+            max_growth_drift_eigvector["b_x"] = VEC_DRIFT["data"][idx_z, idx_x, :][6]
+            max_growth_drift_eigvector["b_y"] = VEC_DRIFT["data"][idx_z, idx_x, :][7]
+            max_growth_drift_eigvector["rho_n"] = VEC_DRIFT["data"][idx_z, idx_x, :][8]
+            max_growth_drift_eigvector["rho_i"] = VEC_DRIFT["data"][idx_z, idx_x, :][9]
 
     print("MRI max growth rate parameters:\n", max_growth_MRI_parameters)
     print("MRI eigvector:")
     for key, value in max_growth_MRI_eigvector.items():
-        print(f"{key}: {value:.5e}")
+        print(f"{key}: {value}")
     print("Ion-neutral drift max growth rate parameters:\n", max_growth_drift_parameters)
     print("Drift eigvector:")
     for key, value in max_growth_drift_eigvector.items():
-        print(f"{key}: {value:.5e}")
+        print(f"{key}: {value}")
 
 
 def main():

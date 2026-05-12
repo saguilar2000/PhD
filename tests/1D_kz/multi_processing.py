@@ -13,15 +13,14 @@ def parallel_process(proc_num, Kkx, Kkz, Am, chi,
                      fx, fy, fz, betay_i, betaz_i,
                      mn, mi, q, r0, h0,
                      vec, vec_size,
-                     return_grw, return_freq, return_grwv=None, return_freqv=None):
+                     return_grw, return_freq, return_vec=None):
 
     sizex = len(Kkx)
     sizez = len(Kkz)
 
     GRW  = np.zeros((sizez, sizex))
     OSC  = np.zeros((sizez, sizex))
-    GRWV = np.zeros((sizez, sizex, vec_size))
-    OSCV = np.zeros((sizez, sizex, vec_size))
+    VEC = np.zeros((sizez, sizex, vec_size), dtype='complex128')
 
     for j, Kz in enumerate(Kkz):
         for i, Kx in enumerate(Kkx):
@@ -34,11 +33,10 @@ def parallel_process(proc_num, Kkx, Kkz, Am, chi,
 
             idx = np.argmax(w.real)
             GRW[j, i] = w.real[idx]
-            OSC[j, i] = w.imag[idx]
+            OSC[j, i] = -w.imag[idx]
 
             if vec:
-                GRWV[j, i, :] = v[idx].real
-                OSCV[j, i, :] = v[idx].imag
+                VEC[j, i, :] = v[:,idx]
 
     # --------------------------------------------------------
     # Write to shared memory
@@ -51,33 +49,15 @@ def parallel_process(proc_num, Kkx, Kkz, Am, chi,
     return_grw [start:end] = GRW.ravel()
     return_freq[start:end] = OSC.ravel()
 
-    if return_grwv is not None:
-        start_v = start * vec_size
-        end_v   = end * vec_size
+    if return_vec is not None:
+        vec_flat = VEC.view(np.float64).ravel()
+        start_v = start * vec_size * 2
+        end_v   = start_v + vec_flat.size
 
-        assert end_v - start_v == GRWV.size, \
-            "Shared-memory slice size mismatch for GRWV"
+        if end_v > len(return_vec):
+            raise IndexError(f"Proc {proc_num}: Index out of bounds of return_vec")
 
-        return_grwv[start_v:end_v]  = GRWV.ravel()
-        return_freqv[start_v:end_v] = OSCV.ravel()
-
-# ============================================================
-# Elsasser number ambipolar diffusion term
-# ============================================================
-def Am(r, W, z, eps):
-    r0 = 1.0 # AU
-    h0 = 0.05 * r
-    rho_n0 = 1.0e-10
-    gamma = 3.5e13  # cm^3 g^-1 s^-1
-    G = 6.67430e-8  # cm^3 g^-1 s^-2
-    M_sun = 1.989e33  # g
-    r_cm = r * 1.496e13  # Convert AU to cm
-
-    rho_n = rho_n0 * (r/r0)**(W) * np.exp(-z**2/(2*h0**2))
-    Omega_K = np.sqrt(G*M_sun/r_cm**3)
-    alpha = gamma * rho_n / Omega_K
-
-    return alpha * eps
+        return_vec[start_v:end_v] = vec_flat
 
 # ============================================================
 # Main
@@ -139,8 +119,7 @@ def main():
     # --------------------------------------------------------
     GRW  = multiprocessing.Array('d', NZ * NX)
     OSC  = multiprocessing.Array('d', NZ * NX)
-    GRWV = multiprocessing.Array('d', NZ * NX * vec_size)
-    OSCV = multiprocessing.Array('d', NZ * NX * vec_size)
+    VEC  = multiprocessing.Array('d', NZ * NX * vec_size * 2)  # Complex numbers stored as pairs of doubles
 
     # --------------------------------------------------------
     # Domain decomposition
@@ -159,7 +138,7 @@ def main():
 
     for chi in chi_list:
         eps = chi * (mi / mn)
-        Am_ = Am(r0, W, z, eps)
+        Am_ = gs.Am(r0, W, z, eps)
         for betaz in betaz_list:
             betay_list = [50.0, 100.0, 500.0, 1000.0, 5000.0]
             for betay in betay_list:
@@ -193,7 +172,7 @@ def main():
                         betay, betaz,
                         mn, mi, q, r0, h0,
                         vec, vec_size,
-                        GRW, OSC, GRWV, OSCV
+                        GRW, OSC, VEC
                     )
 
                     proc = multiprocessing.Process(
@@ -212,8 +191,7 @@ def main():
                 # ------------------------------------------------
                 GRW_save  = np.array(GRW[:]).reshape(NZ, NX)
                 OSC_save  = np.array(OSC[:]).reshape(NZ, NX)
-                GRWV_save = np.array(GRWV[:]).reshape(NZ, NX, vec_size)
-                OSCV_save = np.array(OSCV[:]).reshape(NZ, NX, vec_size)
+                VEC_save = np.array(VEC[:]).reshape(NZ, NX, vec_size, 2)
 
                 # ------------------------------------------------
                 # Save
@@ -227,8 +205,7 @@ def main():
 
                 grw_fname = f"GRW_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
                 osc_fname = f"OSC_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
-                grwv_fname = f"GRWV_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
-                oscv_fname = f"OSCV_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
+                vec_fname = f"VEC_{node}_chi_{chi_str}_betay_{betay_str}_betaz_{betaz_str}"
 
                 np.savez(directory + grw_fname,
                             data=GRW_save,
@@ -248,17 +225,8 @@ def main():
                             betaz=betaz,
                             )
                 
-                np.savez(directory + grwv_fname,
-                            data=GRWV_save,
-                            drift=np.array([fx, fy, fz]),
-                            Am=Am_,
-                            chi=chi,
-                            betay=betay,
-                            betaz=betaz,
-                            )
-                
-                np.savez(directory + oscv_fname,
-                            data=OSCV_save,
+                np.savez(directory + vec_fname,
+                            data=VEC_save,
                             drift=np.array([fx, fy, fz]),
                             Am=Am_,
                             chi=chi,

@@ -45,7 +45,7 @@ min_res = 500 # Minimum resolution for the solver
 kxmin   = 0.0
 kxmax   = 0.0
 kzmin   = 1.0e-01
-kzmax   = 1.0e+04
+kzmax   = 1.0e+08
 if kxmin == 0.0 and kxmax == 0.0:
     NX = 1
 else:
