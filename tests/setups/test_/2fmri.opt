@@ -1,0 +1,50 @@
+# You may enter a description between the BEGIN and END labels.
+# BEGIN
+# The "2fmri" setup is a 2.5D cartesian shearing-box setup
+# designed to meassure the growth rate of the MRI instability with ion (GAS) and neutrals (DUST).
+# In order to run it, do:
+# make SETUP=2fmri
+# fargo3d setups/2fmri/2fmri.par
+# END
+# ----------------------------------------------------------------------
+# From the list below, activate/deactivate the options that apply to
+# your run. If you modify any of these options, make sure that you
+# recompile the whole code by typing "make clean; make".
+# ----------------------------------------------------------------------
+
+#Dimension(s) of Simulation
+
+
+#FARGO3D 2.0 (multifluid)
+#-------------------------------
+FLUIDS := 0 1
+NFLUIDS = 2
+FARGO_OPT += -DNFLUIDS=${NFLUIDS}
+#--------------------------------
+FARGO_OPT += -DX
+FARGO_OPT += -DY
+FARGO_OPT += -DZ
+
+#Coordinate System.
+FARGO_OPT += -DCARTESIAN
+
+#Shearing box simulation
+FARGO_OPT += -DSHEARINGBOX
+
+#Isothermal equation of state
+FARGO_OPT += -DISOTHERMAL
+
+#We include MHD
+FARGO_OPT += -DMHD
+FARGO_OPT += -DSTRICTSYM
+
+#Ion-neutral collisions
+FARGO_OPT += -DDRAGFORCE
+FARGO_OPT += -DSTOKESNUMBER
+
+#Cuda blocks
+ifeq (${GPU}, 1)
+FARGO_OPT += -DBLOCK_X=1
+FARGO_OPT += -DBLOCK_Y=16
+FARGO_OPT += -DBLOCK_Z=16
+endif

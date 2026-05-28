@@ -1,0 +1,207 @@
+#include "fargo3d.h"
+
+void Init() {
+
+  int i,j,k;
+
+  //These are global structures
+  real *rho = Density->field_cpu; //Centered
+  real *cs  = Energy->field_cpu;  //Centered
+  real *vx  = Vy->field_cpu;      //Staggered in x
+  real *vy  = Vx->field_cpu;      //Staggered in y
+  real *vz  = Vz->field_cpu;      //Staggered in z
+  real *bx  = By->field_cpu;      //Staggered in x
+  real *by  = Bx->field_cpu;      //Staggered in y
+  real *bz  = Bz->field_cpu;      //Staggered in z
+  
+  real b0z    = SOUNDSPEEDNEUTRAL*sqrt(2.0*MU0/BETAZ);
+  real b0x    = SOUNDSPEEDNEUTRAL*sqrt(2.0*MU0/BETAP);
+  real b0     = sqrt(b0x*b0x + b0z*b0z);
+  real va     = b0/sqrt(MU0);
+  real kmode  = 2*M_PI/(ZMAX-ZMIN);
+  
+  //We now compute the amplitudes:
+  real dvyi_r = 0.0;
+  real dvxi_r = 0.0;
+  real dvzi_r = 0.0;
+  real dvyn_r = 0.0;
+  real dvxn_r = 0.0;
+  real dvzn_r = 0.0;
+  real dby_r  = 0.0;
+  real dbx_r  = 0.0;
+  real dpn_r  = 0.0;
+  real dpi_r  = 0.0;
+
+  real dvyi_i = 0.0;
+  real dvxi_i = 0.0;
+  real dvzi_i = 0.0;
+  real dvyn_i = 0.0;
+  real dvxn_i = 0.0;
+  real dvzn_i = 0.0;
+  real dby_i  = 0.0;
+  real dbx_i  = 0.0;
+  real dpn_i  = 0.0;
+  real dpi_i  = 0.0;
+
+  real f_zmax, f_dvnx_r, f_dvny_r, f_dvnz_r, f_dvix_r, f_dviy_r, f_dviz_r, f_dbx_r, f_dby_r, f_dpn_r, f_dpi_r;
+  real f_dvnx_i, f_dvny_i, f_dvnz_i, f_dvix_i, f_dviy_i, f_dviz_i, f_dbx_i, f_dby_i, f_dpn_i, f_dpi_i;
+  int found = 0;
+  FILE *fp = fopen("setups/2fmri/eigenvectors.dat", "rb");
+
+  while (fread(&f_zmax, sizeof(real), 1, fp) == 1) {
+    fread(&f_dvnx_r, sizeof(real), 1, fp);
+    fread(&f_dvnx_i, sizeof(real), 1, fp);
+
+    fread(&f_dvny_r, sizeof(real), 1, fp);
+    fread(&f_dvny_i, sizeof(real), 1, fp);
+
+    fread(&f_dvnz_r, sizeof(real), 1, fp);
+    fread(&f_dvnz_i, sizeof(real), 1, fp);
+
+    fread(&f_dvix_r, sizeof(real), 1, fp);
+    fread(&f_dvix_i, sizeof(real), 1, fp);
+
+    fread(&f_dviy_r, sizeof(real), 1, fp);
+    fread(&f_dviy_i, sizeof(real), 1, fp);
+
+    fread(&f_dviz_r, sizeof(real), 1, fp);
+    fread(&f_dviz_i, sizeof(real), 1, fp);
+
+    fread(&f_dbx_r,  sizeof(real), 1, fp);
+    fread(&f_dbx_i,  sizeof(real), 1, fp);
+
+    fread(&f_dby_r,  sizeof(real), 1, fp);
+    fread(&f_dby_i,  sizeof(real), 1, fp);
+
+    fread(&f_dpn_r,  sizeof(real), 1, fp);
+    fread(&f_dpn_i,  sizeof(real), 1, fp);
+
+    fread(&f_dpi_r,  sizeof(real), 1, fp);
+    fread(&f_dpi_i,  sizeof(real), 1, fp);
+    //printf("Reading eigenvector for ZMAX = %f\n", f_zmax);
+
+    // Check if this row matches our current simulation box size
+    if (fabs(f_zmax - ZMAX) < 1e-5) {
+      dvxn_r = f_dvnx_r;
+      dvyn_r = f_dvny_r;
+      dvzn_r = f_dvnz_r;
+      dvxi_r = f_dvix_r;
+      dvyi_r = f_dviy_r;
+      dvzi_r = f_dviz_r;
+      dbx_r  = f_dbx_r;
+      dby_r  = f_dby_r;
+      dpn_r  = f_dpn_r;
+      dpi_r  = f_dpi_r;
+
+      dvxn_i = f_dvnx_i;
+      dvyn_i = f_dvny_i;
+      dvzn_i = f_dvnz_i;
+      dvxi_i = f_dvix_i;
+      dvyi_i = f_dviy_i;
+      dvzi_i = f_dviz_i;
+      dbx_i  = f_dbx_i;
+      dby_i  = f_dby_i;
+      dpn_i  = f_dpn_i;
+      dpi_i  = f_dpi_i;
+
+      found = 1;
+      break; 
+    }
+  }
+  fclose(fp);
+
+  real norm  = sqrt(pow(dvxi_r,2) + pow(dvyi_r,2) + pow(dvxn_r,2) + pow(dvyn_r,2) + pow(dbx_r,2) + pow(dby_r,2) + pow(dvzn_r,2) + pow(dvzi_r,2) + pow(dpn_r,2) + pow(dpi_r,2) + pow(dvxi_i,2) + pow(dvyi_i,2) + pow(dvxn_i,2) + pow(dvyn_i,2) + pow(dbx_i,2) + pow(dby_i,2) + pow(dvzn_i,2) + pow(dvzi_i,2) + pow(dpn_i,2) + pow(dpi_i,2));
+
+  // printf("[DEBUG] Eigvector found for ZMAX = %f: dvxn = %f + %f i, dvyn = %f + %f i, dvzn = %f + %f i, dvxi = %f + %f i, dvyi = %f + %f i, dvzi = %f + %f i, dbx = %f + %f i, dby = %f + %f i, dpn = %f + %f i, dpi = %f + %f i, norm = %f\n", ZMAX, dvxn_r, dvxn_i, dvyn_r, dvyn_i, dvzn_r, dvzn_i, dvxi_r, dvxi_i, dvyi_r, dvyi_i, dvzi_r, dvzi_i, dbx_r, dbx_i, dby_r, dby_i, dpn_r, dpn_i, dpi_r, dpi_i, norm);
+
+  dvxi_r *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvyi_r *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvzi_r *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvxn_r *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvyn_r *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvzn_r *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dbx_r *= b0*AMPLITUDE/norm;
+  dby_r *= b0*AMPLITUDE/norm;
+  dpn_r *= AMPLITUDE/norm;
+  dpi_r *= AMPLITUDE/norm;
+
+  dvxi_i *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvyi_i *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvzi_i *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvxn_i *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvyn_i *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dvzn_i *= SOUNDSPEEDNEUTRAL*AMPLITUDE/norm;
+  dbx_i *= b0*AMPLITUDE/norm;
+  dby_i *= b0*AMPLITUDE/norm;
+  dpn_i *= AMPLITUDE/norm;
+  dpi_i *= AMPLITUDE/norm;
+
+
+  //df = dfr*cos(kz) - dfi*sin(kz)
+  //Loop over the mesh
+  for (k=0; k<Nz+2*NGHZ; k++) {
+    for (j=0; j<Ny+2*NGHY; j++) {
+      for (i=0; i<Nx+2*NGHX; i++) {
+
+		
+	if(Fluidtype==GAS){
+	  rho[l] =  1.0;
+	  cs[l]  =  SOUNDSPEEDION;
+	
+	  vx[l]  =  0.0;
+	  vy[l]  = -1.5*OMEGAFRAME*ymed(j);
+	  vz[l]  =  0.0;
+	  bx[l]  =  0.0;
+	  by[l]  =  b0x;
+	  bz[l]  =  b0z;
+
+    vx[l] += NOISE*SOUNDSPEEDNEUTRAL*(-1.0+2.0*drand48());
+    vy[l] += NOISE*SOUNDSPEEDNEUTRAL*(-1.0+2.0*drand48());
+    vz[l] += NOISE*SOUNDSPEEDNEUTRAL*(-1.0+2.0*drand48());
+
+	  // vx[l] += dvxi_r*cos(kmode*zmed(k)) - dvxi_i*sin(kmode*zmed(k));
+	  // vy[l] += dvyi_r*cos(kmode*zmed(k)) - dvyi_i*sin(kmode*zmed(k));
+    // vz[l] += dvzi_r*cos(kmode*zmin(k)) - dvzi_i*sin(kmode*zmin(k));
+	  // bx[l] += dbx_r*cos(kmode*zmed(k)) - dbx_i*sin(kmode*zmed(k));
+	  // by[l]  = dby_r*cos(kmode*zmed(k)) - dby_i*sin(kmode*zmed(k));
+    // rho[l] += dpi_r*cos(kmode*zmed(k)) - dpi_i*sin(kmode*zmed(k));
+
+	}
+	if(Fluidtype==DUST){
+	  
+	  rho[l] =  1.0*EPSILON;
+	  cs[l]  =  SOUNDSPEEDNEUTRAL;
+
+	  vx[l]  =  0.0;
+	  vy[l]  = -1.5*OMEGAFRAME*ymed(j);
+	  vz[l]  =  0.0;
+
+    vx[l] += NOISE*SOUNDSPEEDNEUTRAL*(-1.0+2.0*drand48());
+    vy[l] += NOISE*SOUNDSPEEDNEUTRAL*(-1.0+2.0*drand48());
+    vz[l] += NOISE*SOUNDSPEEDNEUTRAL*(-1.0+2.0*drand48());
+
+	  // vx[l] += dvxn_r*cos(kmode*zmed(k)) - dvxn_i*sin(kmode*zmed(k));
+	  // vy[l] += dvyn_r*cos(kmode*zmed(k)) - dvyn_i*sin(kmode*zmed(k));
+	  // vz[l] += dvzn_r*cos(kmode*zmin(k)) - dvzn_i*sin(kmode*zmin(k));
+	  // rho[l] += dpn_r*cos(kmode*zmed(k)) - dpn_i*sin(kmode*zmed(k));
+	}
+      }
+    }
+  }
+}
+
+
+
+void CondInit() {
+   Fluids[0] = CreateFluid("gas",GAS);
+   SelectFluid(0);
+   Init();
+
+   Fluids[1] = CreateFluid("dust",DUST);
+   SelectFluid(1);
+   Init();
+
+   //
+   ColRate(ALPHACOL, 0, 1, YES);
+
+}

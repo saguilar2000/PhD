@@ -1,0 +1,32 @@
+#Boundaries configuration file 
+#-----------------------------
+Density:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+Vx:
+	Ymin: SHEARBOUNDARY
+	Ymax: SHEARBOUNDARY
+Vy:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+Vz:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+Bx:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+By:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+Bz:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+Emfx:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+Emfy:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC
+Emfz:
+	Ymin: SYMMETRIC
+	Ymax: SYMMETRIC

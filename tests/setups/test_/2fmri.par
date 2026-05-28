@@ -1,0 +1,38 @@
+Setup			2fmri            Setup name
+
+### Problem parameters			         
+
+SoundSpeedNeutral  	0.05                     h0*vk0
+SoundSpeedIon    	0.05                     h0*vk0
+Betaz			500.0                    Gas pressure/Magnetic Pressure
+Betap			500.0e9                  Gas pressure/Magnetic Pressure
+Amplitude		1.0e-6                   Perturbation amplitude
+Shearparam		1.5
+Epsilon			1.0
+Alphacol		1.0e10
+### Mesh parameters			         
+
+Ny               	64		         Number of cells in y
+Nz			64                       Number of cells in z
+
+### Physical domain			         
+
+Ymin		       -0.01		         Left  boundary
+Ymax			0.01		         Right boundary
+Zmin		        0.0		         Lower boundary
+Zmax			0.0115  		 Upper boundary   
+
+### Boundaries
+
+PeriodicZ		Yes		         Periodicity in Z
+
+### Frame of reference			         
+OmegaFrame     		1.0                      Omega0 in shearing box
+Frame			F                        This is always F (Fixed)
+
+### Output control parameters		         
+
+Ntot			160		         Total number of DT
+Ninterm	 		2		         Number of DTs between outputs
+DT			0.1  	      	         DT size for fine grain outputs
+OutputDir		outputs/2fmri            Output directory
