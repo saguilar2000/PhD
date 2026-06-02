@@ -69,6 +69,7 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     vix, viy, viz = 3, 4, 5
     B_x, B_y = 6, 7 
     p_n, p_i = 8, 9
+
     # Constants
     K2 = Kx**2 + Kz**2
     csi_csn = mn / mi
@@ -93,7 +94,7 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     A[vnx,vnx] = -Am
     A[vnx,vny] = 2
     A[vnx,vix] = Am
-    A[vnx,p_n] = (-1j * Kx * invsqrt_eta) * comp_n
+    A[vnx,p_n] = (-1j * Kx * invsqrt_eta)
     A[vnx,p_i] = (Am * fx)
 
     # Row 1: v_ny
@@ -105,7 +106,7 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     # Row 2: v_nz
     A[vnz,vnz] = -Am
     A[vnz,viz] = Am
-    A[vnz,p_n] = (-1j * Kz * invsqrt_eta) * comp_n
+    A[vnz,p_n] = (-1j * Kz * invsqrt_eta)
     A[vnz,p_i] = (Am * fz)
 
     # Row 3 * eps: v_ix
@@ -115,7 +116,7 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     A[vix,B_x] = 1j * Kz * (1 + Kx**2 / Kz**2) * invsqrt_eta * (2 * f / betaz) * B0z
     A[vix,B_y] = -1j * Kx * invsqrt_eta * (2 * f / betay) * B0y
     A[vix,p_n] = (-Am * fx)
-    A[vix,p_i] = (-1j * Kx * invsqrt_eta * (csi_csn) * eps) * comp_i
+    A[vix,p_i] = (-1j * Kx * invsqrt_eta * (csi_csn) * eps)
     
     B[vix,vix] = eps  # fix
 
@@ -133,7 +134,7 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     A[viz,viz] = -(iKf * eps + Am)
     A[viz,B_y] = -1j * Kz * invsqrt_eta * (2 * f / betay) * B0y
     A[viz,p_n] = (-Am * fz)
-    A[viz,p_i] = (-1j * Kz * invsqrt_eta * (csi_csn) * eps) * comp_i
+    A[viz,p_i] = (-1j * Kz * invsqrt_eta * (csi_csn) * eps)
     
     B[viz,viz] = eps  # fix
 
@@ -149,13 +150,13 @@ def compute_eigenvalues(Kx, Kz, Am, chi, fx, fy, fz, betay, betaz, mn, mi, q, r0
     A[B_y,B_y] = -iKf
 
     # Row 8: rho_n
-    A[p_n,vnx] = (-1j * Kx * invsqrt_eta) * comp_n
-    A[p_n,vnz] = (-1j * Kz * invsqrt_eta) * comp_n
+    A[p_n,vnx] = (-1j * Kx * invsqrt_eta)
+    A[p_n,vnz] = (-1j * Kz * invsqrt_eta)
 
     # Row 9: rho_i
-    A[p_i,vix] = (-1j * Kx * invsqrt_eta) * comp_i
-    A[p_i,viz] = (-1j * Kz * invsqrt_eta) * comp_i
-    A[p_i,p_i] = (-iKf) * comp_i
+    A[p_i,vix] = (-1j * Kx * invsqrt_eta)
+    A[p_i,viz] = (-1j * Kz * invsqrt_eta)
+    A[p_i,p_i] = (-iKf)
 
     v = 0
     if vec == True:

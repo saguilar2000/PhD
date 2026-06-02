@@ -155,11 +155,11 @@ void SubStep1_y_cpu (real dt) {
 	vm = 0.25*(vx_half[ll]+vx_half[llxp]+vx_half[llym]+vx_half[llxp-pitch]);	
 	vy_temp[l] += dt*(2.0*OMEGAFRAME*vm + 2.0*SHEARPARAM*OMEGAFRAME*OMEGAFRAME*ymin(j));
 
-#ifdef DRIFT
-	if (Fluidtype == GAS) {
-	  vy_temp[ll] += 2*ASPECTRATIO*ASPECTRATIO*OMEGAFRAME*R0*dt;
-	}
-#endif
+// #ifdef DRAGFORCE
+// 	if (Fluidtype == GAS) {
+// 	  vy_temp[ll] += 2*ASPECTRATIO*ASPECTRATIO*OMEGAFRAME*R0*dt;
+// 	}
+// #endif
 	
 #endif //ENDIF SHEARINGBOX
 

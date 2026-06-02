@@ -30,21 +30,31 @@ def get_mode(outputdir):
 #      0.0142 , 0.0127,
 #      0.012, 0.0115]
 
-z = [ 0.3974, 0.0911,
+setup = "back_2fmri"
+if setup == "back_2fmri":
+    z = [0.03974]
+    ntot = 40
+else:
+    z = [ 0.3974, 0.0911,
       0.0274 , 0.0223,
       0.012, 0.0115]
+    ntot = 160
 
 ny = 64
 nz = 64
 ninterm = 2
 dt      = 0.1
-os.system("rm -rf outputs/2fmri/*")
-os.system("python3 setups/2fmri/analyze.py -e")
+
+os.system("rm -rf outputs/{:s}/*".format(setup))
+os.system("python3 setups/2fmri/analyze.py -e".format(setup))
 
 for i,z0 in enumerate(z):
-    os.system("./fargo3d -o 'zmax={0:4.4f} outputdir=outputs/2fmri/output{1:d} ny={2:d} nz={3:d} ninterm={4:d} dt={5:f}' setups/2fmri/2fmri.par".format(z0,i, ny, nz, ninterm, dt))
+    os.system("./fargo3d -o 'zmax={0:4.4f} outputdir=outputs/{2:s}/output{1:d} ny={3:d} nz={4:d} ninterm={5:d} dt={6:f} ntot={7:d}' setups/2fmri/2fmri.par".format(z0,i, setup, ny, nz, ninterm, dt, ntot))
 
-os.system("python3 setups/2fmri/analyze.py -c")
+if setup == "back_2fmri":
+    os.system("python3 setups/2fmri/analyze.py -k")
+else:
+    os.system("python3 setups/2fmri/analyze.py -c")
 
 # fig = figure(figsize=(5,5))
 # ax1 = fig.add_subplot(111)
